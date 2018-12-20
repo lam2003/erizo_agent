@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+CURRENT_DIR=`pwd`
+#rm ./build -rf
+#mkdir build
+cd ./build/
+cmake ../
+make 
+make install
+cd ${CURRENT_DIR}
+cp ./log4cxx.properties ./bin
+cp ./config.json ./bin
+cd ./bin
+./erizo_agent_cpp
+cd ${CURRENT_DIR}

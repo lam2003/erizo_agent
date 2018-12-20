@@ -1,0 +1,4 @@
+libdeps/
+build/
+bin/
+.vscode/
