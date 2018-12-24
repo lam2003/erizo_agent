@@ -3,9 +3,12 @@
         "host": "localhost",
         "port": 5672,
         "username": "linmin",
-        "password": "linmin"
+        "password": "linmin",
+        "uniquecast_exchange": "erizo_uniquecast_exchange",
+        "boardcast_exchange": "erizo_boardcast_exchange"
     },
-    "agent":{
-        "ip": "172.19.5.28"
+    "agent": {
+        "ip": "172.19.5.28",
+        "erizo_path": "/test/cpp/erizo_cpp/bin/erizo_cpp"
     }
 }

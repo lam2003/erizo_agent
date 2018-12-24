@@ -43,7 +43,6 @@ int ErizoAgent::init()
         return 1;
     }
 
-
     if (bootErizoProcessManager())
     {
         ELOG_ERROR("Boot erizo process manager failed");
@@ -52,16 +51,16 @@ int ErizoAgent::init()
 
     id_ = Utils::getUUID();
     amqp_broadcast_ = std::make_shared<AMQPHelper>();
-    if (amqp_broadcast_->init("broadcastExchange", "ErizoAgent", [&](const std::string &msg) {
+    if (amqp_broadcast_->init(Config::getInstance()->boardcast_exchange_, "ErizoAgent", [&](const std::string &msg) {
             Json::Value root;
             Json::Reader reader;
             if (!reader.parse(msg, root))
                 return;
 
             Json::Value data = root["data"];
-            if (data.isNull() ||
+            if (!root.isMember("data") ||
                 data.type() != Json::objectValue ||
-                data["method"].isNull() ||
+                !data.isMember("method") ||
                 data["method"].type() != Json::stringValue)
             {
                 ELOG_ERROR("Unknow message:%s", msg);
@@ -81,16 +80,16 @@ int ErizoAgent::init()
 
     std::string uniquecast_binding_key = "ErizoAgent_" + id_;
     amqp_uniquecast_ = std::make_shared<AMQPHelper>();
-    if (amqp_uniquecast_->init("rpcExchange", uniquecast_binding_key, [&](const std::string &msg) {
+    if (amqp_uniquecast_->init(Config::getInstance()->uniquecast_exchange_, uniquecast_binding_key, [&](const std::string &msg) {
             Json::Value root;
             Json::Reader reader;
             if (!reader.parse(msg, root))
                 return;
 
             Json::Value data = root["data"];
-            if (data.isNull() ||
+            if (!root.isMember("data") ||
                 data.type() != Json::objectValue ||
-                data["method"].isNull() ||
+                !data.isMember("method") ||
                 data["method"].type() != Json::stringValue)
             {
                 ELOG_ERROR("Unknow message:%s", msg);
@@ -133,7 +132,7 @@ void ErizoAgent::close()
 
 void ErizoAgent::getErizoAgents(const Json::Value &root)
 {
-    if (root["replyTo"].isNull() ||
+    if (!root.isMember("replyTo") ||
         root["replyTo"].type() != Json::stringValue)
     {
         ELOG_ERROR("Message format error");
@@ -151,18 +150,18 @@ void ErizoAgent::getErizoAgents(const Json::Value &root)
     Json::FastWriter writer;
     std::string msg = writer.write(reply);
 
-    amqp_uniquecast_->addCallback({"rpcExchange", reply_to, reply_to, msg});
+    amqp_uniquecast_->addCallback(reply_to, reply_to, msg);
 }
 
 void ErizoAgent::getErizo(const Json::Value &root)
 {
-    if (root["replyTo"].isNull() ||
+    if (!root.isMember("replyTo") ||
         root["replyTo"].type() != Json::stringValue ||
-        root["corrID"].isNull() ||
+        !root.isMember("corrID") ||
         root["corrID"].type() != Json::intValue ||
-        root["UUID"].isNull() ||
+        !root.isMember("UUID") ||
         root["UUID"].type() != Json::stringValue ||
-        root["data"].isNull() ||
+        !root.isMember("data") ||
         root["data"].type() != Json::objectValue)
     {
         ELOG_ERROR("Message format error");
@@ -174,7 +173,7 @@ void ErizoAgent::getErizo(const Json::Value &root)
     std::string uuid = root["UUID"].asString();
     Json::Value data = root["data"];
 
-    if (data["roomID"].isNull() || data["roomID"].type() != Json::stringValue)
+    if (!data.isMember("roomID") || data["roomID"].type() != Json::stringValue)
     {
         ELOG_ERROR("Data format error");
         return;
@@ -197,7 +196,7 @@ void ErizoAgent::getErizo(const Json::Value &root)
             return;
         }
 
-        if (manager_msg["ret"].isNull() ||
+        if (!manager_msg.isMember("ret") ||
             manager_msg["ret"].type() != Json::intValue)
         {
             ELOG_ERROR("Erizo manager reply message format error");
@@ -212,9 +211,9 @@ void ErizoAgent::getErizo(const Json::Value &root)
         }
         else
         {
-            if (manager_msg["erizoID"].isNull() ||
+            if (!manager_msg.isMember("erizoID") ||
                 manager_msg["erizoID"].type() != Json::stringValue ||
-                manager_msg["pid"].isNull() ||
+                !manager_msg.isMember("pid") ||
                 manager_msg["pid"].type() != Json::intValue)
             {
                 ELOG_ERROR("Erizo manager reply data format error");
@@ -228,7 +227,7 @@ void ErizoAgent::getErizo(const Json::Value &root)
     }
 
     Json::Value reply_data;
-    reply_data["id"] = erizos_map_[room_id].id;
+    reply_data["erizo_id"] = erizos_map_[room_id].id;
 
     Json::Value reply;
     reply["corrID"] = corrid;
@@ -237,7 +236,7 @@ void ErizoAgent::getErizo(const Json::Value &root)
     Json::FastWriter writer;
     std::string msg = writer.write(reply);
 
-    amqp_uniquecast_->addCallback({"rpcExchange", reply_to, reply_to, msg});
+    amqp_uniquecast_->addCallback(reply_to, reply_to, msg);
 }
 
 void sigchld_handler(int signo)
@@ -272,7 +271,7 @@ int ErizoAgent::bootErizoProcessManager()
             if (pid == 0)
             {
                 ::close(pipe_[1]);
-                if (execlp("erizo_cpp", "erizo_cpp", erizo_id, 0) < 0)
+                if (execlp(Config::getInstance()->erizo_path.c_str(), "erizo_cpp", erizo_id.c_str(), 0) < 0)
                 {
                     ELOG_ERROR("Erizo process execute failed,exit");
                     exit(1);

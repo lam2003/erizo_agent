@@ -21,9 +21,12 @@ public:
   std::string rabbitmq_passwd_;
   std::string rabbitmq_hostname_;
   unsigned short rabbitmq_port_;
+  std::string uniquecast_exchange_;
+  std::string boardcast_exchange_;
 
-  //Agent config 
+  //Agent config
   std::string agent_ip_;
+  std::string erizo_path;
 
 private:
   Config();

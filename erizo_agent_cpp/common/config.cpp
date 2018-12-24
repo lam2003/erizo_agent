@@ -12,8 +12,11 @@ Config::Config()
     rabbitmq_passwd_ = "linmin";
     rabbitmq_hostname_ = "localhost";
     rabbitmq_port_ = 5672;
+    uniquecast_exchange_ = "erizo_uniquecast_exchange";
+    boardcast_exchange_ = "erizo_boardcast_exchange";
 
     agent_ip_ = "172.19.5.28";
+    erizo_path = "/test/cpp/erizo_cpp/bin/erizo_cpp";
 }
 
 Config *Config::getInstance()
@@ -50,16 +53,20 @@ int Config::init(const std::string &config_file)
     }
 
     Json::Value rabbitmq = root["rabbitmq"];
-    if (rabbitmq.isNull() ||
+    if (!root.isMember("rabbitmq") ||
         rabbitmq.type() != Json::objectValue ||
-        rabbitmq["host"].isNull() ||
+        !rabbitmq.isMember("host") ||
         rabbitmq["host"].type() != Json::stringValue ||
-        rabbitmq["port"].isNull() ||
+        !rabbitmq.isMember("port") ||
         rabbitmq["port"].type() != Json::intValue ||
-        rabbitmq["username"].isNull() ||
+        !rabbitmq.isMember("username") ||
         rabbitmq["username"].type() != Json::stringValue ||
-        rabbitmq["password"].isNull() ||
-        rabbitmq["password"].type() != Json::stringValue)
+        !rabbitmq.isMember("password") ||
+        rabbitmq["password"].type() != Json::stringValue ||
+        !rabbitmq.isMember("boardcast_exchange") ||
+        rabbitmq["boardcast_exchange"].type() != Json::stringValue ||
+        !rabbitmq.isMember("uniquecast_exchange") ||
+        rabbitmq["uniquecast_exchange"].type() != Json::stringValue)
     {
         ELOG_ERROR("Rabbitmq config check error");
         return 1;
@@ -69,18 +76,23 @@ int Config::init(const std::string &config_file)
     rabbitmq_port_ = rabbitmq["port"].asInt();
     rabbitmq_username_ = rabbitmq["username"].asString();
     rabbitmq_passwd_ = rabbitmq["password"].asString();
+    uniquecast_exchange_ = rabbitmq["uniquecast_exchange"].asString();
+    boardcast_exchange_ = rabbitmq["boardcast_exchange"].asString();
 
     Json::Value agent = root["agent"];
-    if (rabbitmq.isNull() ||
-        rabbitmq.type() != Json::objectValue ||
-        agent["ip"].isNull() ||
-        agent["ip"].type() != Json::stringValue)
+    if (!root.isMember("agent") ||
+        agent.type() != Json::objectValue ||
+        !agent.isMember("ip") ||
+        agent["ip"].type() != Json::stringValue ||
+        !agent.isMember("erizo_path") ||
+        agent["erizo_path"].type() != Json::stringValue)
     {
         ELOG_ERROR("Agent config check error");
         return 1;
     }
 
     agent_ip_ = agent["ip"].asString();
+    erizo_path = agent["erizo_path"].asString();
 
     return 0;
 }
