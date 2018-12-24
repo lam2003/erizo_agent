@@ -28,6 +28,11 @@ public:
   std::string agent_ip_;
   std::string erizo_path;
 
+  //redis
+  std::string redis_ip_;
+  unsigned short redis_port_;
+  std::string redis_passwd_;
+
 private:
   Config();
 

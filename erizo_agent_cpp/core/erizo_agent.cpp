@@ -1,6 +1,7 @@
 #include "erizo_agent.h"
 
 #include <sstream>
+#include <chrono>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -15,13 +16,24 @@
 
 #define MANAGER_SEM_KEY 1231
 #define MAIN_SEM_KEY 1232
-
+#define ERIZO_AGENT "ERIZO_AGENT"
 DEFINE_LOGGER(ErizoAgent, "ErizoAgent");
+
+ErizoAgent::Erizo::operator Json::Value() 
+{
+    Json::Value v;
+    v["pid"] = pid;
+    v["id"] = id;
+    v["room_id"] = room_id;
+    return v;
+}
+
 
 ErizoAgent::ErizoAgent() : init_(false),
                            id_(""),
                            amqp_broadcast_(nullptr),
-                           amqp_uniquecast_(nullptr)
+                           amqp_uniquecast_(nullptr),
+                           heartbeat_thread_(nullptr)
 {
 }
 
@@ -107,9 +119,44 @@ int ErizoAgent::init()
         return 1;
     }
 
+    redis_ = std::make_shared<RedisHelper>();
+    if (redis_->init(Config::getInstance()->redis_ip_, Config::getInstance()->redis_port_, Config::getInstance()->redis_passwd_))
+    {
+        ELOG_ERROR("Redis initialize failed");
+        return 1;
+    }
+    startHeartBeat();
     init_ = true;
+    ELOG_INFO("ErizoAgent Init succeed!");
     return 0;
 }
+
+void ErizoAgent::stopHeartBeat() {
+    if(heartbeat_thread_) {
+        sem_post(&heartbeat_exit_sem_);
+        if(heartbeat_thread_->joinable()) {
+            heartbeat_thread_->join();
+        }
+    }
+}
+
+void ErizoAgent::startHeartBeat() {
+    sem_init(&heartbeat_exit_sem_, 0, 0);
+    heartbeat_thread_ = std::make_shared<std::thread>([=]() {
+        while(1) {
+            struct timespec ts;
+            clock_gettime( CLOCK_REALTIME, &ts );
+            ts.tv_sec  += 3;
+            ts.tv_nsec += 0;
+            if(sem_timedwait(&heartbeat_exit_sem_, &ts) == -1) {
+                redis_->command("HSET", {ERIZO_AGENT, Config::getInstance()->agent_ip_, Json::Value(*this).toStyledString()});
+            } else {
+                break;
+            }
+        }
+    });
+}
+
 void ErizoAgent::close()
 {
     if (!init_)
@@ -117,7 +164,7 @@ void ErizoAgent::close()
         ELOG_WARN("ErizoAgent didn't initialize,can't close!!!");
         return;
     }
-
+    stopHeartBeat();
     amqp_broadcast_->close();
     amqp_broadcast_.reset();
     amqp_broadcast_ = nullptr;
@@ -126,8 +173,13 @@ void ErizoAgent::close()
     amqp_uniquecast_.reset();
     amqp_uniquecast_ = nullptr;
 
+    redis_->close();
+    redis_.reset();
+    redis_ = nullptr;
+
     id_ = "";
     init_ = false;
+    ELOG_INFO("ErizoAgent close succeed!");
 }
 
 void ErizoAgent::getErizoAgents(const Json::Value &root)
@@ -239,17 +291,10 @@ void ErizoAgent::getErizo(const Json::Value &root)
     amqp_uniquecast_->addCallback(reply_to, reply_to, msg);
 }
 
-void sigchld_handler(int signo)
-{
-    waitpid(-1, NULL, 0);
-}
-
+extern void sigchld_handler(int signo);
 int ErizoAgent::bootErizoProcessManager()
 {
     int ret;
-
-    signal(SIGCHLD, sigchld_handler);
-
     ret = pipe(pipe_);
     if (ret < 0)
     {
@@ -260,6 +305,7 @@ int ErizoAgent::bootErizoProcessManager()
     manager_pid_ = fork();
     if (manager_pid_ == 0)
     {
+        signal(SIGCHLD, sigchld_handler);
         ::close(pipe_[0]);
         char buf[2048];
 
@@ -306,4 +352,26 @@ int ErizoAgent::bootErizoProcessManager()
     }
 
     return 0;
+}
+
+void ErizoAgent::removeErizo(pid_t child_pid)
+{
+    for(auto erizo : erizos_map_) {
+        if(erizo.second.pid == child_pid) {
+            erizos_map_.erase(erizo.first);
+            break;
+        }
+    }
+}
+
+ErizoAgent::operator Json::Value() 
+{
+    Json::Value v;
+    v["id"] = id_;
+    Json::Value erizos;
+    for(auto &erizo : erizos_map_) {
+        erizos.append(erizo.second);
+    }
+    v["erizos"] = erizos;
+    return v;
 }
