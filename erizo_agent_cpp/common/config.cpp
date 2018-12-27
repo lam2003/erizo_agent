@@ -107,6 +107,8 @@ int Config::init(const std::string &config_file)
         agent.type() != Json::objectValue ||
         !agent.isMember("ip") ||
         agent["ip"].type() != Json::stringValue ||
+        agent.isMember("area_type") || 
+        agent["area_type"].type() != Json::intValue || 
         !agent.isMember("erizo_path") ||
         agent["erizo_path"].type() != Json::stringValue)
     {
@@ -115,6 +117,7 @@ int Config::init(const std::string &config_file)
     }
 
     agent_ip_ = agent["ip"].asString();
+    area_type_ = agent["area_type"].asInt();
     erizo_path = agent["erizo_path"].asString();
 
     return 0;

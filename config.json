@@ -2,13 +2,19 @@
     "rabbitmq": {
         "host": "localhost",
         "port": 5672,
-        "username": "linmin",
-        "password": "linmin",
+        "username": "licode",
+        "password": "licode",
         "uniquecast_exchange": "erizo_uniquecast_exchange",
         "boardcast_exchange": "erizo_boardcast_exchange"
     },
     "agent": {
         "ip": "172.19.5.28",
-        "erizo_path": "/test/cpp/erizo_cpp/bin/erizo_cpp"
+        "area_type":18, //"CTL_SOUTH"
+        "erizo_path": "/home/jiangbaolin/cpp/erizo_cpp/bin/erizo_cpp"
+    },
+    "redis": {
+	"ip":"127.0.0.1",
+	"port":6379,
+	"password":"licode"
     }
 }

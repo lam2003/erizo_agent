@@ -42,6 +42,7 @@ private:
 private:
   bool init_;
   std::string id_;
+  int area_type_;
   std::shared_ptr<AMQPHelper> amqp_broadcast_;
   std::shared_ptr<AMQPHelper> amqp_uniquecast_;
   std::shared_ptr<RedisHelper> redis_;

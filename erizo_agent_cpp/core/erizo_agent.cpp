@@ -16,7 +16,7 @@
 
 #define MANAGER_SEM_KEY 1231
 #define MAIN_SEM_KEY 1232
-#define ERIZO_AGENT "ERIZO_AGENT"
+#define ERIZO_AGENTS "erizo_agents"
 DEFINE_LOGGER(ErizoAgent, "ErizoAgent");
 
 ErizoAgent::Erizo::operator Json::Value() 
@@ -61,6 +61,7 @@ int ErizoAgent::init()
         return 1;
     }
 
+    area_type_ = Config::getInstance()->area_type_;
     id_ = Utils::getUUID();
     amqp_broadcast_ = std::make_shared<AMQPHelper>();
     if (amqp_broadcast_->init(Config::getInstance()->boardcast_exchange_, "ErizoAgent", [&](const std::string &msg) {
@@ -149,7 +150,7 @@ void ErizoAgent::startHeartBeat() {
             ts.tv_sec  += 3;
             ts.tv_nsec += 0;
             if(sem_timedwait(&heartbeat_exit_sem_, &ts) == -1) {
-                redis_->command("HSET", {ERIZO_AGENT, Config::getInstance()->agent_ip_, Json::Value(*this).toStyledString()});
+                redis_->command("HSET", {ERIZO_AGENTS, Config::getInstance()->agent_ip_, Json::Value(*this).toStyledString()});
             } else {
                 break;
             }
@@ -368,6 +369,8 @@ ErizoAgent::operator Json::Value()
 {
     Json::Value v;
     v["id"] = id_;
+    v["area_type"] = area_type_;
+    v["timestamp"] = time(NULL);
     Json::Value erizos;
     for(auto &erizo : erizos_map_) {
         erizos.append(erizo.second);

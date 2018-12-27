@@ -26,6 +26,7 @@ public:
 
   //Agent config
   std::string agent_ip_;
+  int area_type_;
   std::string erizo_path;
 
   //redis
