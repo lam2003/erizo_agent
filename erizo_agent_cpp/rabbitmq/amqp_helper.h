@@ -27,8 +27,6 @@ public:
 
 private:
   AMQPHelper();
-
-private:
   int checkError(amqp_rpc_reply_t x);
 
 private:

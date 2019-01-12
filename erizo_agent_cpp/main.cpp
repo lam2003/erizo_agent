@@ -142,7 +142,7 @@ int main()
 
     while (run)
     {
-        uint64_t now = Utils::getCurrentMs();
+        uint64_t now = Utils::getSystemMs();
 
         if (now - erizo_agent.last_update > (uint64_t)Config::getInstance()->update_interval_)
         {

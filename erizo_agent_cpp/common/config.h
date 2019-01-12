@@ -26,7 +26,7 @@ public:
 
   //redis
   std::string redis_ip_;
-  uint16_t redis_port_;
+  unsigned short redis_port_;
   std::string redis_password_;
 
   //Agent config
