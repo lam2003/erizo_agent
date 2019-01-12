@@ -7,8 +7,15 @@
         "uniquecast_exchange": "erizo_uniquecast_exchange",
         "boardcast_exchange": "erizo_boardcast_exchange"
     },
+    "redis": {
+        "ip": "127.0.0.1",
+        "port": 6379,
+        "password": "cathy978"
+    },
     "agent": {
         "ip": "172.19.5.28",
-        "erizo_path": "/test/cpp/erizo_cpp/bin/erizo_cpp"
+        "erizo_path": "/test/cpp/erizo_cpp/bin/erizo_cpp",
+        "area": "default_area",
+        "update_interval": 5000
     }
 }

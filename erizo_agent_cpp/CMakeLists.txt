@@ -14,7 +14,7 @@ file(GLOB_RECURSE ERIZO_AGENT_CPP_SOURCES "${ERIZO_AGENT_CPP_SOURCE_DIR}/*.h" "$
 
 add_executable(erizo_agent_cpp ${ERIZO_AGENT_CPP_SOURCES})
 
-target_link_libraries(erizo_agent_cpp rabbitmq log4cxx pthread jsoncpp erizo)
+target_link_libraries(erizo_agent_cpp rabbitmq log4cxx pthread jsoncpp erizo boost_system)
 
 install(TARGETS erizo_agent_cpp RUNTIME DESTINATION bin)
 

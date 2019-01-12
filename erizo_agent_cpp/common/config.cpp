@@ -15,8 +15,13 @@ Config::Config()
     uniquecast_exchange_ = "erizo_uniquecast_exchange";
     boardcast_exchange_ = "erizo_boardcast_exchange";
 
-    agent_ip_ = "172.19.5.28";
-    erizo_path = "/test/cpp/erizo_cpp/bin/erizo_cpp";
+    redis_ip_ = "127.0.0.1";
+    redis_port_ = 6379;
+    redis_password_ = "cathy978";
+
+    erizo_path_ = "/test/cpp/erizo_cpp/bin/erizo_cpp";
+    area_ = "hua_nan";
+    update_interval_ = 10000;
 }
 
 Config *Config::getInstance()
@@ -72,6 +77,34 @@ int Config::init(const std::string &config_file)
         return 1;
     }
 
+    Json::Value redis = root["redis"];
+    if (!root.isMember("redis") ||
+        redis.type() != Json::objectValue ||
+        !redis.isMember("ip") ||
+        redis["ip"].type() != Json::stringValue ||
+        !redis.isMember("port") ||
+        redis["port"].type() != Json::intValue ||
+        !redis.isMember("password") ||
+        redis["password"].type() != Json::stringValue)
+    {
+        ELOG_ERROR("Redis config check error");
+        return 1;
+    }
+
+    Json::Value agent = root["agent"];
+    if (!root.isMember("agent") ||
+        agent.type() != Json::objectValue ||
+        !agent.isMember("erizo_path") ||
+        agent["erizo_path"].type() != Json::stringValue ||
+        !agent.isMember("area") ||
+        agent["area"].type() != Json::stringValue ||
+        !agent.isMember("update_interval") ||
+        agent["update_interval"].type() != Json::intValue)
+    {
+        ELOG_ERROR("Agent config check error");
+        return 1;
+    }
+
     rabbitmq_hostname_ = rabbitmq["host"].asString();
     rabbitmq_port_ = rabbitmq["port"].asInt();
     rabbitmq_username_ = rabbitmq["username"].asString();
@@ -79,20 +112,13 @@ int Config::init(const std::string &config_file)
     uniquecast_exchange_ = rabbitmq["uniquecast_exchange"].asString();
     boardcast_exchange_ = rabbitmq["boardcast_exchange"].asString();
 
-    Json::Value agent = root["agent"];
-    if (!root.isMember("agent") ||
-        agent.type() != Json::objectValue ||
-        !agent.isMember("ip") ||
-        agent["ip"].type() != Json::stringValue ||
-        !agent.isMember("erizo_path") ||
-        agent["erizo_path"].type() != Json::stringValue)
-    {
-        ELOG_ERROR("Agent config check error");
-        return 1;
-    }
+    redis_ip_ = redis["ip"].asString();
+    redis_port_ = redis["port"].asInt();
+    redis_password_ = redis["password"].asString();
 
-    agent_ip_ = agent["ip"].asString();
-    erizo_path = agent["erizo_path"].asString();
+    erizo_path_ = agent["erizo_path"].asString();
+    area_ = agent["area"].asString();
+    update_interval_ = agent["update_interval"].asInt();
 
     return 0;
 }

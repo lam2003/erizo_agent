@@ -24,9 +24,15 @@ public:
   std::string uniquecast_exchange_;
   std::string boardcast_exchange_;
 
+  //redis
+  std::string redis_ip_;
+  uint16_t redis_port_;
+  std::string redis_password_;
+
   //Agent config
-  std::string agent_ip_;
-  std::string erizo_path;
+  std::string erizo_path_;
+  std::string area_;
+  int update_interval_;
 
 private:
   Config();
