@@ -18,7 +18,7 @@ class RedisHelper
 public:
   ~RedisHelper();
   static RedisHelper *getInstance();
-  RedisHelper();
+
   int init();
   void close();
 
@@ -30,7 +30,7 @@ public:
   int removeErizo(const std::string &agent_id, const std::string &room_id);
 
 private:
-
+  RedisHelper();
 
 private:
   boost::asio::io_service ios_;
