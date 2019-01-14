@@ -17,5 +17,10 @@
         "erizo_path": "/test/cpp/erizo_cpp/bin/erizo_cpp",
         "area": "default_area",
         "update_interval": 5000
+    },
+    "bridge": {
+        "ip": "172.19.5.28",
+        "min_port": 20000,
+        "max_port": 30000
     }
 }

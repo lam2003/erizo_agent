@@ -34,6 +34,11 @@ public:
   std::string area_;
   int update_interval_;
 
+  //bridge
+  unsigned int min_bridge_port_;
+  unsigned int max_bridge_port_;
+  std::string bridge_ip_;
+
 private:
   Config();
 

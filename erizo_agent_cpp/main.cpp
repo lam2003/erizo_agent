@@ -9,6 +9,7 @@
 
 #include "common/utils.h"
 #include "common/config.h"
+#include "common/port_manager.h"
 #include "model/erizo.h"
 #include "model/erizo_agent.h"
 #include "rabbitmq/amqp_helper.h"
@@ -39,14 +40,22 @@ static void sigterm_handler(int signo)
     run = false;
 }
 
-static pid_t newErizoProcess(const std::string &erizo_id)
+static pid_t newErizoProcess(const std::string &erizo_id, uint16_t bridge_port)
 {
     pid_t pid = fork();
     if (pid == 0)
     {
-        if (execlp(Config::getInstance()->erizo_path_.c_str(), "erizo_cpp", erizo_agent.id.c_str(), erizo_id.c_str(), 0) < 0)
+        std::ostringstream oss;
+        oss << bridge_port;
+        if (execlp(Config::getInstance()->erizo_path_.c_str(),
+                   "erizo_cpp",
+                   erizo_agent.id.c_str(),
+                   erizo_id.c_str(),
+                   Config::getInstance()->bridge_ip_.c_str(),
+                   oss.str(),
+                   0) < 0)
         {
-            printf("execlp failed,sub process quit\n");
+            printf("execlp failed,sub process quit,%s\n", strerror(errno));
             exit(1);
         }
     }
@@ -65,11 +74,20 @@ static Json::Value getErizo(const Json::Value &root)
     auto it = erizo_map2.find(room_id);
     if (it == erizo_map2.end())
     {
-        std::string erizo_id = "ez_" + Utils::getUUID();
-        pid_t pid = newErizoProcess(erizo_id);
-        if (pid < 0)
+        uint16_t bridge_port;
+        if (PortManager::getInstance()->allocPort(bridge_port))
+        {
+            printf("alloc port failed\n");
             return Json::nullValue;
+        }
 
+        std::string erizo_id = "ez_" + Utils::getUUID();
+        pid_t pid = newErizoProcess(erizo_id, bridge_port);
+        if (pid < 0)
+        {
+            printf("fork new process failed\n");
+            return Json::nullValue;
+        }
         erizo.id = erizo_id;
         erizo.room_id = room_id;
         erizo_map1[pid] = erizo;
@@ -87,6 +105,7 @@ static Json::Value getErizo(const Json::Value &root)
 
 int main()
 {
+    srand(time(0));
     signal(SIGCHLD, sigchld_handler);
     signal(SIGINT, sigint_handler);
     signal(SIGTERM, sigterm_handler);
@@ -127,6 +146,12 @@ int main()
         if (!method.compare("getErizo"))
         {
             reply_data = getErizo(data);
+        }
+
+        if (reply_data == Json::nullValue)
+        {
+            printf("%s failed\n",method);
+            return;
         }
 
         Json::Value reply;

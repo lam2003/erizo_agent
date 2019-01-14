@@ -20,8 +20,12 @@ Config::Config()
     redis_password_ = "cathy978";
 
     erizo_path_ = "/test/cpp/erizo_cpp/bin/erizo_cpp";
-    area_ = "hua_nan";
-    update_interval_ = 10000;
+    area_ = "default_area";
+    update_interval_ = 5000;
+
+    min_bridge_port_ = 20000;
+    max_bridge_port_ = 30000;
+    bridge_ip_ = "172.19.5.28";
 }
 
 Config *Config::getInstance()
@@ -105,6 +109,20 @@ int Config::init(const std::string &config_file)
         return 1;
     }
 
+    Json::Value bridge = root["bridge"];
+    if (!root.isMember("bridge") ||
+        bridge.type() != Json::objectValue ||
+        !bridge.isMember("min_port") ||
+        bridge["min_port"].type() != Json::intValue ||
+        !bridge.isMember("max_port") ||
+        bridge["max_port"].type() != Json::intValue ||
+        !bridge.isMember("ip") ||
+        bridge["ip"].type() != Json::stringValue)
+    {
+        ELOG_ERROR("Bridge config check error");
+        return 1;
+    }
+
     rabbitmq_hostname_ = rabbitmq["host"].asString();
     rabbitmq_port_ = rabbitmq["port"].asInt();
     rabbitmq_username_ = rabbitmq["username"].asString();
@@ -119,6 +137,10 @@ int Config::init(const std::string &config_file)
     erizo_path_ = agent["erizo_path"].asString();
     area_ = agent["area"].asString();
     update_interval_ = agent["update_interval"].asInt();
+
+    min_bridge_port_ = bridge["min_port"].asInt();
+    max_bridge_port_ = bridge["max_port"].asInt();
+    bridge_ip_ = bridge["ip"].asString();
 
     return 0;
 }
