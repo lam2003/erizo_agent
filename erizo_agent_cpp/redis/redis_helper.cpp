@@ -74,31 +74,31 @@ int RedisHelper::removeErizoAgent(const std::string &area, const std::string &ag
     return 0;
 }
 
-int RedisHelper::addErizo(const std::string &agent_id, const Erizo &erizo)
-{
-    redisclient::RedisValue val;
-    val = redis_->command("HSET", {agent_id, erizo.room_id, erizo.toJSON()});
-    if (!val.isOk())
-        return 1;
-    return 0;
-}
+// int RedisHelper::addErizo(const std::string &agent_id, const Erizo &erizo)
+// {
+//     redisclient::RedisValue val;
+//     val = redis_->command("HSET", {agent_id, erizo.room_id, erizo.toJSON()});
+//     if (!val.isOk())
+//         return 1;
+//     return 0;
+// }
 
-int RedisHelper::getErizo(const std::string &agent_id, const std::string &room_id, Erizo &erizo)
-{
-    redisclient::RedisValue val;
-    val = redis_->command("HGET", {agent_id, room_id});
-    if (!val.isOk() || !val.isString())
-        return 1;
-    if (Erizo::fromJSON(val.toString(), erizo))
-        return 1;
-    return 0;
-}
+// int RedisHelper::getErizo(const std::string &agent_id, const std::string &room_id, Erizo &erizo)
+// {
+//     redisclient::RedisValue val;
+//     val = redis_->command("HGET", {agent_id, room_id});
+//     if (!val.isOk() || !val.isString())
+//         return 1;
+//     if (Erizo::fromJSON(val.toString(), erizo))
+//         return 1;
+//     return 0;
+// }
 
-int RedisHelper::removeErizo(const std::string &agent_id, const std::string &room_id)
-{
-    redisclient::RedisValue val;
-    val = redis_->command("HDEL", {agent_id, room_id});
-    if (!val.isOk())
-        return 1;
-    return 0;
-}
+// int RedisHelper::removeErizo(const std::string &agent_id, const std::string &room_id)
+// {
+//     redisclient::RedisValue val;
+//     val = redis_->command("HDEL", {agent_id, room_id});
+//     if (!val.isOk())
+//         return 1;
+//     return 0;
+// }

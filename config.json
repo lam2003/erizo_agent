@@ -13,7 +13,6 @@
         "password": "cathy978"
     },
     "agent": {
-        "ip": "172.19.5.28",
         "erizo_path": "/test/cpp/erizo_cpp/bin/erizo_cpp",
         "area": "default_area",
         "update_interval": 5000

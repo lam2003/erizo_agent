@@ -4,7 +4,7 @@ CURRENT_DIR=`pwd`
 #rm ./build -rf
 #mkdir build
 cd ./build/
-cmake ../
+#cmake ../
 make 
 make install
 cd ${CURRENT_DIR}

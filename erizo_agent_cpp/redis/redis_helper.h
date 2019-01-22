@@ -25,9 +25,9 @@ public:
   int addErizoAgent(const std::string &area, const ErizoAgent &agent);
   int removeErizoAgent(const std::string &area, const std::string &agent_id);
 
-  int addErizo(const std::string &agent_id, const Erizo &erizo);
-  int getErizo(const std::string &agent_id, const std::string &room_id, Erizo &erizo);
-  int removeErizo(const std::string &agent_id, const std::string &room_id);
+  // int addErizo(const std::string &agent_id, const Erizo &erizo);
+  // int getErizo(const std::string &agent_id, const std::string &room_id, Erizo &erizo);
+  // int removeErizo(const std::string &agent_id, const std::string &room_id);
 
 private:
   RedisHelper();

@@ -23,6 +23,7 @@ static bool run = true;
 static void sigchld_handler(int signo)
 {
     pid_t pid = waitpid(-1, NULL, 0);
+    printf("sub process die:%d\n", pid);
     auto it = erizo_map1.find(pid);
     if (it != erizo_map1.end())
     {
@@ -31,16 +32,8 @@ static void sigchld_handler(int signo)
         erizo_map2.erase(erizo.room_id);
     }
 }
-static void sigint_handler(int signo)
-{
-    run = false;
-}
-static void sigterm_handler(int signo)
-{
-    run = false;
-}
 
-static pid_t newErizoProcess(const std::string &erizo_id, uint16_t bridge_port)
+static pid_t newErizoProcess(const std::string &erizo_id, const std::string &bridge_ip, uint16_t bridge_port)
 {
     pid_t pid = fork();
     if (pid == 0)
@@ -51,8 +44,8 @@ static pid_t newErizoProcess(const std::string &erizo_id, uint16_t bridge_port)
                    "erizo_cpp",
                    erizo_agent.id.c_str(),
                    erizo_id.c_str(),
-                   Config::getInstance()->bridge_ip_.c_str(),
-                   oss.str(),
+                   bridge_ip.c_str(),
+                   oss.str().c_str(),
                    0) < 0)
         {
             printf("execlp failed,sub process quit,%s\n", strerror(errno));
@@ -74,6 +67,7 @@ static Json::Value getErizo(const Json::Value &root)
     auto it = erizo_map2.find(room_id);
     if (it == erizo_map2.end())
     {
+        std::string bridge_ip = Config::getInstance()->bridge_ip_;
         uint16_t bridge_port;
         if (PortManager::getInstance()->allocPort(bridge_port))
         {
@@ -82,7 +76,7 @@ static Json::Value getErizo(const Json::Value &root)
         }
 
         std::string erizo_id = "ez_" + Utils::getUUID();
-        pid_t pid = newErizoProcess(erizo_id, bridge_port);
+        pid_t pid = newErizoProcess(erizo_id, bridge_ip, bridge_port);
         if (pid < 0)
         {
             printf("fork new process failed\n");
@@ -90,6 +84,8 @@ static Json::Value getErizo(const Json::Value &root)
         }
         erizo.id = erizo_id;
         erizo.room_id = room_id;
+        erizo.bridge_ip = bridge_ip;
+        erizo.bridge_port = bridge_port;
         erizo_map1[pid] = erizo;
         erizo_map2[room_id] = erizo;
     }
@@ -100,6 +96,8 @@ static Json::Value getErizo(const Json::Value &root)
 
     Json::Value data;
     data["erizoID"] = erizo.id;
+    data["bridgeIP"] = erizo.bridge_ip;
+    data["bridgePort"] = erizo.bridge_port;
     return data;
 };
 
@@ -107,8 +105,8 @@ int main()
 {
     srand(time(0));
     signal(SIGCHLD, sigchld_handler);
-    signal(SIGINT, sigint_handler);
-    signal(SIGTERM, sigterm_handler);
+    // signal(SIGINT, sigint_handler);
+    // signal(SIGTERM, sigterm_handler);
     erizo_agent.id = "ea_" + Utils::getUUID();
 
     Utils::initPath();
@@ -150,7 +148,7 @@ int main()
 
         if (reply_data == Json::nullValue)
         {
-            printf("%s failed\n",method);
+            printf("%s failed\n", method);
             return;
         }
 
