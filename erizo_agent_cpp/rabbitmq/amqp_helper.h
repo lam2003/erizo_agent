@@ -3,10 +3,11 @@
 
 #include <amqp.h>
 #include <amqp_tcp_socket.h>
-#include <logger.h>
 
 #include <memory>
 #include <functional>
+
+#include "common/logger.h"
 
 class AMQPHelper
 {

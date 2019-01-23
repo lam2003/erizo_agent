@@ -10,24 +10,39 @@
 #include "common/utils.h"
 #include "common/config.h"
 #include "common/port_manager.h"
+
 #include "model/erizo.h"
 #include "model/erizo_agent.h"
+
 #include "rabbitmq/amqp_helper.h"
 #include "redis/redis_helper.h"
+
+DEFINE_FUNC_LOGGER("ErizoAgent")
 
 static ErizoAgent erizo_agent;
 static std::map<pid_t, Erizo> erizo_map1;
 static std::map<std::string, Erizo> erizo_map2;
 static bool run = true;
 
-static void sigchld_handler(int signo)
+static void sigint_handler(int signo)
 {
-    pid_t pid = waitpid(-1, NULL, 0);
-    printf("sub process die:%d\n", pid);
+    ELOG_INFO("main process quit");
+    run = false;
+}
+
+static void checkSubProcess()
+{
+    int status;
+    pid_t pid = waitpid(-1, &status, WNOHANG);
+    if (pid <= 0)
+        return;
+
+    ELOG_INFO("sub process %d quit", pid);
     auto it = erizo_map1.find(pid);
     if (it != erizo_map1.end())
     {
         Erizo erizo = erizo_map1[pid];
+        RedisHelper::removeErizo(erizo.id);
         erizo_map1.erase(pid);
         erizo_map2.erase(erizo.room_id);
     }
@@ -48,7 +63,7 @@ static pid_t newErizoProcess(const std::string &erizo_id, const std::string &bri
                    oss.str().c_str(),
                    0) < 0)
         {
-            printf("execlp failed,sub process quit,%s\n", strerror(errno));
+            ELOG_ERROR("execlp failed,%s", strerror(errno));
             exit(1);
         }
     }
@@ -71,7 +86,7 @@ static Json::Value getErizo(const Json::Value &root)
         uint16_t bridge_port;
         if (PortManager::getInstance()->allocPort(bridge_port))
         {
-            printf("alloc port failed\n");
+            ELOG_ERROR("allocate port failed");
             return Json::nullValue;
         }
 
@@ -79,13 +94,17 @@ static Json::Value getErizo(const Json::Value &root)
         pid_t pid = newErizoProcess(erizo_id, bridge_ip, bridge_port);
         if (pid < 0)
         {
-            printf("fork new process failed\n");
+            ELOG_ERROR("fork sub process failed");
             return Json::nullValue;
         }
+
+        ELOG_INFO("new sub process %d", pid);
         erizo.id = erizo_id;
         erizo.room_id = room_id;
         erizo.bridge_ip = bridge_ip;
         erizo.bridge_port = bridge_port;
+        erizo.agent_id = erizo_agent.id;
+        RedisHelper::addErizo(erizo);
         erizo_map1[pid] = erizo;
         erizo_map2[room_id] = erizo;
     }
@@ -104,64 +123,71 @@ static Json::Value getErizo(const Json::Value &root)
 int main()
 {
     srand(time(0));
-    signal(SIGCHLD, sigchld_handler);
-    // signal(SIGINT, sigint_handler);
-    // signal(SIGTERM, sigterm_handler);
+    signal(SIGINT, sigint_handler);
+
     erizo_agent.id = "ea_" + Utils::getUUID();
-
     Utils::initPath();
-    Config::getInstance()->init("config.json");
 
-    if (RedisHelper::getInstance()->init())
+    if (Config::getInstance()->init("config.json"))
     {
-        printf("redis init failed");
+        ELOG_ERROR("load configure failed");
         return 1;
     }
 
-    AMQPHelper::getInstance()->init(Config::getInstance()->uniquecast_exchange_, erizo_agent.id, [](const std::string &msg) {
-        Json::Value root;
-        Json::Reader reader;
-        if (!reader.parse(msg, root))
-            return;
+    if (ACLRedis::getInstance()->init())
+    {
+        ELOG_ERROR("redis initialize failed");
+        return 1;
+    }
 
-        if (!root.isMember("corrID") ||
-            root["corrID"].type() != Json::intValue ||
-            !root.isMember("replyTo") ||
-            root["replyTo"].type() != Json::stringValue ||
-            !root.isMember("data") ||
-            root["data"].type() != Json::objectValue)
-            return;
+    if (AMQPHelper::getInstance()->init(Config::getInstance()->uniquecast_exchange_, erizo_agent.id, [](const std::string &msg) {
+            Json::Value root;
+            Json::Reader reader;
+            if (!reader.parse(msg, root))
+                return;
 
-        int corrid = root["corrID"].asInt();
-        std::string reply_to = root["replyTo"].asString();
-        Json::Value data = root["data"];
-        if (!data.isMember("method") ||
-            data["method"].type() != Json::stringValue)
-            return;
+            if (!root.isMember("corrID") ||
+                root["corrID"].type() != Json::intValue ||
+                !root.isMember("replyTo") ||
+                root["replyTo"].type() != Json::stringValue ||
+                !root.isMember("data") ||
+                root["data"].type() != Json::objectValue)
+                return;
 
-        Json::Value reply_data = Json::nullValue;
-        std::string method = data["method"].asString();
-        if (!method.compare("getErizo"))
-        {
-            reply_data = getErizo(data);
-        }
+            int corrid = root["corrID"].asInt();
+            std::string reply_to = root["replyTo"].asString();
+            Json::Value data = root["data"];
+            if (!data.isMember("method") ||
+                data["method"].type() != Json::stringValue)
+                return;
 
-        if (reply_data == Json::nullValue)
-        {
-            printf("%s failed\n", method);
-            return;
-        }
+            Json::Value reply_data = Json::nullValue;
+            std::string method = data["method"].asString();
+            if (!method.compare("getErizo"))
+            {
+                reply_data = getErizo(data);
+            }
 
-        Json::Value reply;
-        reply["corrID"] = corrid;
-        reply["data"] = reply_data;
-        Json::FastWriter writer;
-        std::string reply_msg = writer.write(reply);
-        AMQPHelper::getInstance()->sendMessage(Config::getInstance()->uniquecast_exchange_,
-                                               reply_to,
-                                               reply_to,
-                                               reply_msg);
-    });
+            if (reply_data == Json::nullValue)
+            {
+                ELOG_ERROR("handle message failed,dump:%s", msg);
+                return;
+            }
+
+            Json::Value reply;
+            reply["corrID"] = corrid;
+            reply["data"] = reply_data;
+            Json::FastWriter writer;
+            std::string reply_msg = writer.write(reply);
+            AMQPHelper::getInstance()->sendMessage(Config::getInstance()->uniquecast_exchange_,
+                                                   reply_to,
+                                                   reply_to,
+                                                   reply_msg);
+        }))
+    {
+        ELOG_ERROR("rabbitmq initialize failed");
+        return 1;
+    }
 
     while (run)
     {
@@ -171,14 +197,19 @@ int main()
         {
             erizo_agent.last_update = now;
             erizo_agent.erizo_process_num = erizo_map1.size();
-            RedisHelper::getInstance()->addErizoAgent(Config::getInstance()->area_, erizo_agent);
+            RedisHelper::addErizoAgent(Config::getInstance()->area_, erizo_agent);
         }
         if (AMQPHelper::getInstance()->dispatch())
         {
-            printf("amqp failed\n");
+            ELOG_ERROR("amqp dispatch failed");
             break;
         }
+        checkSubProcess();
     }
+    RedisHelper::removeErizoAgent(Config::getInstance()->area_, erizo_agent.id);
+    for (auto it = erizo_map1.begin(); it != erizo_map1.end(); it++)
+        RedisHelper::removeErizo(it->second.id);
+
     AMQPHelper::getInstance()->close();
-    RedisHelper::getInstance()->close();
+    ACLRedis::getInstance()->close();
 }

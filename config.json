@@ -10,7 +10,10 @@
     "redis": {
         "ip": "127.0.0.1",
         "port": 6379,
-        "password": "cathy978"
+        "password": "cathy978",
+        "conn_timeout": 10,
+        "rw_timeout": 10,
+        "max_conns": 100
     },
     "agent": {
         "erizo_path": "/test/cpp/erizo_cpp/bin/erizo_cpp",

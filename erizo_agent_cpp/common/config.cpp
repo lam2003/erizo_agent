@@ -10,7 +10,7 @@ Config::Config()
 {
     rabbitmq_username_ = "linmin";
     rabbitmq_passwd_ = "linmin";
-    rabbitmq_hostname_ = "localhost";
+    rabbitmq_hostname_ = "127.0.0.1";
     rabbitmq_port_ = 5672;
     uniquecast_exchange_ = "erizo_uniquecast_exchange";
     boardcast_exchange_ = "erizo_boardcast_exchange";
@@ -18,6 +18,9 @@ Config::Config()
     redis_ip_ = "127.0.0.1";
     redis_port_ = 6379;
     redis_password_ = "cathy978";
+    redis_conn_timeout_ = 10;
+    redis_rw_timeout_ = 10;
+    redis_max_conns_ = 100;
 
     erizo_path_ = "/test/cpp/erizo_cpp/bin/erizo_cpp";
     area_ = "default_area";
@@ -49,7 +52,7 @@ int Config::init(const std::string &config_file)
     std::ifstream ifs(config_file, std::ios::binary);
     if (!ifs.is_open())
     {
-        ELOG_ERROR("Open %s failed", config_file);
+        ELOG_ERROR("open %s failed", config_file);
         return 1;
     }
 
@@ -57,7 +60,7 @@ int Config::init(const std::string &config_file)
     Json::Value root;
     if (!reader.parse(ifs, root))
     {
-        ELOG_ERROR("Parse %s failed", config_file);
+        ELOG_ERROR("parse %s failed", config_file);
         return 1;
     }
 
@@ -77,7 +80,7 @@ int Config::init(const std::string &config_file)
         !rabbitmq.isMember("uniquecast_exchange") ||
         rabbitmq["uniquecast_exchange"].type() != Json::stringValue)
     {
-        ELOG_ERROR("Rabbitmq config check error");
+        ELOG_ERROR("rabbitmq config check error");
         return 1;
     }
 
@@ -89,9 +92,15 @@ int Config::init(const std::string &config_file)
         !redis.isMember("port") ||
         redis["port"].type() != Json::intValue ||
         !redis.isMember("password") ||
-        redis["password"].type() != Json::stringValue)
+        redis["password"].type() != Json::stringValue ||
+        !redis.isMember("conn_timeout") ||
+        redis["conn_timeout"].type() != Json::intValue ||
+        !redis.isMember("rw_timeout") ||
+        redis["rw_timeout"].type() != Json::intValue ||
+        !redis.isMember("max_conns") ||
+        redis["max_conns"].type() != Json::intValue )
     {
-        ELOG_ERROR("Redis config check error");
+        ELOG_ERROR("redis config check error");
         return 1;
     }
 
@@ -105,7 +114,7 @@ int Config::init(const std::string &config_file)
         !agent.isMember("update_interval") ||
         agent["update_interval"].type() != Json::intValue)
     {
-        ELOG_ERROR("Agent config check error");
+        ELOG_ERROR("agent config check error");
         return 1;
     }
 
@@ -119,7 +128,7 @@ int Config::init(const std::string &config_file)
         !bridge.isMember("ip") ||
         bridge["ip"].type() != Json::stringValue)
     {
-        ELOG_ERROR("Bridge config check error");
+        ELOG_ERROR("bridge config check error");
         return 1;
     }
 
@@ -133,6 +142,9 @@ int Config::init(const std::string &config_file)
     redis_ip_ = redis["ip"].asString();
     redis_port_ = redis["port"].asInt();
     redis_password_ = redis["password"].asString();
+    redis_conn_timeout_ = redis["conn_timeout"].asInt();
+    redis_rw_timeout_ = redis["rw_timeout"].asInt();
+    redis_max_conns_ = redis["max_conns"].asInt();
 
     erizo_path_ = agent["erizo_path"].asString();
     area_ = agent["area"].asString();

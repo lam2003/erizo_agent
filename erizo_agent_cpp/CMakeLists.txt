@@ -5,7 +5,7 @@ project (ERIZO_AGENT_CPP)
 set(ERIZO_AGENT_CPP_VERSION_MAJOR 0)
 set(ERIZO_AGENT_CPP_VERSION_MINOR 1)
 
-set(CMAKE_CXX_FLAGS "-g -Wall  -Wno-deprecated-declarations -O3 -std=c++11 ${ERIZO_CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "-g -Wall  -pthread -Wno-deprecated-declarations -O3 -std=c++11 ${ERIZO_CMAKE_CXX_FLAGS}")
 
 include_directories("${ERIZO_AGENT_CPP_SOURCE_DIR}" "${LIBDEPS_INCLUDE}")
 link_directories("${LIBDEPS_LIBARAYS}")
@@ -14,7 +14,7 @@ file(GLOB_RECURSE ERIZO_AGENT_CPP_SOURCES "${ERIZO_AGENT_CPP_SOURCE_DIR}/*.h" "$
 
 add_executable(erizo_agent_cpp ${ERIZO_AGENT_CPP_SOURCES})
 
-target_link_libraries(erizo_agent_cpp rabbitmq log4cxx pthread jsoncpp erizo boost_system)
+target_link_libraries(erizo_agent_cpp rabbitmq log4cxx pthread jsoncpp boost_system acl_cpp protocol acl)
 
 install(TARGETS erizo_agent_cpp RUNTIME DESTINATION bin)
 

@@ -35,20 +35,20 @@ class Utils
         sprintf(filepath, "/proc/%d", getpid());
         if (chdir(filepath) < 0)
         {
-            printf("chdir to %s failed\n", filepath);
+            printf("change working path to %s failed\n", filepath);
             return 1;
         }
 
         snprintf(cmd, 256, "ls -l | grep exe | awk '{print $11}'");
         if ((fp = popen(cmd, "r")) == nullptr)
         {
-            printf("popen failed.../n");
+            printf("popen failed\n");
             return 1;
         }
 
         if (fgets(buf, sizeof(buf) / sizeof(buf[0]), fp) == nullptr)
         {
-            printf("fgets error.../n");
+            printf("fgets failed\n");
             pclose(fp);
             return 1;
         }
@@ -60,7 +60,7 @@ class Utils
 
         if (chdir(path.c_str()) < 0)
         {
-            printf("chdir to %s failed\n", path.c_str());
+            printf("change working path to %s failed\n", path.c_str());
             return 1;
         }
         return 0;

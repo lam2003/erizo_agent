@@ -77,13 +77,13 @@ int AMQPHelper::init(const std::string &exchange, const std::string &binding_key
     amqp_socket_t *socket = amqp_tcp_socket_new(conn_);
     if (!socket)
     {
-        ELOG_ERROR("Creating TCP socket failed");
+        ELOG_ERROR("create tcp socket failed");
         return 1;
     }
 
     if (amqp_socket_open(socket, Config::getInstance()->rabbitmq_hostname_.c_str(), Config::getInstance()->rabbitmq_port_) != AMQP_STATUS_OK)
     {
-        ELOG_ERROR("Opening TCP socket failed");
+        ELOG_ERROR("open tcp socket failed");
         return 1;
     }
 
@@ -92,7 +92,7 @@ int AMQPHelper::init(const std::string &exchange, const std::string &binding_key
                      Config::getInstance()->rabbitmq_passwd_.c_str());
     if (checkError(res))
     {
-        ELOG_ERROR("Logging in failed");
+        ELOG_ERROR("login failed");
         return 1;
     }
 
@@ -100,7 +100,7 @@ int AMQPHelper::init(const std::string &exchange, const std::string &binding_key
     res = amqp_get_rpc_reply(conn_);
     if (checkError(res))
     {
-        ELOG_ERROR("Opening channel failed");
+        ELOG_ERROR("open channel failed");
         return 1;
     }
 
@@ -109,14 +109,14 @@ int AMQPHelper::init(const std::string &exchange, const std::string &binding_key
     res = amqp_get_rpc_reply(conn_);
     if (checkError(res))
     {
-        ELOG_ERROR("Declaring queue failed");
+        ELOG_ERROR("declare queue failed");
         return 1;
     }
 
     amqp_bytes_t queuename = amqp_bytes_malloc_dup(r->queue);
     if (queuename.bytes == NULL)
     {
-        ELOG_ERROR("Out of memory while copying queue name");
+        ELOG_ERROR("out of memory while copying queue name");
         return 1;
     }
 
@@ -125,7 +125,7 @@ int AMQPHelper::init(const std::string &exchange, const std::string &binding_key
     res = amqp_get_rpc_reply(conn_);
     if (checkError(res))
     {
-        ELOG_ERROR("Binding queue failed");
+        ELOG_ERROR("bind queue failed");
         return 1;
     }
 
@@ -134,7 +134,7 @@ int AMQPHelper::init(const std::string &exchange, const std::string &binding_key
     res = amqp_get_rpc_reply(conn_);
     if (checkError(res))
     {
-        ELOG_ERROR("Consuming failed");
+        ELOG_ERROR("consume failed");
         return 1;
     }
 
@@ -196,7 +196,7 @@ int AMQPHelper::sendMessage(const std::string &exchange, const std::string &queu
     props.reply_to = amqp_bytes_malloc_dup(amqp_cstring_bytes(queuename.c_str()));
     if (props.reply_to.bytes == NULL)
     {
-        ELOG_ERROR("Out of memory while copying queue name");
+        ELOG_ERROR("out of memory while copying queue name");
         return 1;
     }
 

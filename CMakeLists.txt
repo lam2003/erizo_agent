@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.6)
 
 project (ERIZO_AGENT_CPP_ALL)
 
-set(LIBDEPS_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/libdeps/include" "${CMAKE_CURRENT_SOURCE_DIR}/libdeps/include/erizo")
+set(LIBDEPS_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/libdeps/include")
 set(LIBDEPS_LIBARAYS "${CMAKE_CURRENT_SOURCE_DIR}/libdeps/lib")
 
 set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}")
