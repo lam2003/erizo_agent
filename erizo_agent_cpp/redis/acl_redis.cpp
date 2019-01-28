@@ -70,3 +70,21 @@ int ACLRedis::hdel(const std::string &key, const std::string &field)
     cmd.clear();
     return res;
 }
+
+int ACLRedis::hvals(const std::string &key, std::vector<std::string> &fields, std::vector<std::string> &values)
+{
+    if (!init_)
+        return false;
+    acl::redis_hash cmd;
+    cmd.set_cluster(cluster_.get(), Config::getInstance()->redis_max_conns_);
+    std::map<acl::string, acl::string> buf;
+    int res = cmd.hgetall(key.c_str(), buf);
+    cmd.clear();
+
+    for (auto it = buf.begin(); it != buf.end(); it++)
+    {
+        fields.push_back(std::string(it->first.c_str()));
+        values.push_back(std::string(it->second.c_str()));
+    }
+    return res;
+}

@@ -18,6 +18,7 @@ public:
 
   int hset(const std::string &key, const std::string &field, const std::string &value);
   int hdel(const std::string &key, const std::string &field);
+  int hvals(const std::string &key, std::vector<std::string> &fields, std::vector<std::string> &values);
 
 private:
   ACLRedis();

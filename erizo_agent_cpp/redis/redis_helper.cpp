@@ -16,16 +16,31 @@ int RedisHelper::removeErizoAgent(const std::string &area, const std::string &ag
     return 0;
 }
 
-int RedisHelper::addErizo(const Erizo &erizo)
+int RedisHelper::addErizo(const std::string &agent_id, const Erizo &erizo)
 {
-    if (ACLRedis::getInstance()->hset("erizo", erizo.id, erizo.toJSON()) == -1)
+    if (ACLRedis::getInstance()->hset(agent_id, erizo.id, erizo.toJSON()) == -1)
         return 1;
     return 0;
 }
 
-int RedisHelper::removeErizo(const std::string &erizo_id)
+int RedisHelper::removeErizo(const std::string &agent_id, const std::string &erizo_id)
 {
-    if (ACLRedis::getInstance()->hdel("erizo", erizo_id) == -1)
+    if (ACLRedis::getInstance()->hdel(agent_id, erizo_id) == -1)
         return 1;
+    return 0;
+}
+
+int RedisHelper::getAllErizo(const std::string &agent_id, std::vector<Erizo> &erizos)
+{
+    std::vector<std::string> fields, values;
+    if (ACLRedis::getInstance()->hvals(agent_id, fields, values) == -1)
+        return 1;
+    erizos.clear();
+    for (std::string &v : values)
+    {
+        Erizo e;
+        if (!Erizo::fromJSON(v, e))
+            erizos.push_back(e);
+    }
     return 0;
 }

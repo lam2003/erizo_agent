@@ -23,6 +23,7 @@ static ErizoAgent erizo_agent;
 static std::map<pid_t, Erizo> erizo_map1;
 static std::map<std::string, Erizo> erizo_map2;
 static bool run = true;
+static int idle_process_num = 0;
 
 static void sigint_handler(int signo)
 {
@@ -42,24 +43,38 @@ static void checkSubProcess()
     if (it != erizo_map1.end())
     {
         Erizo erizo = erizo_map1[pid];
-        RedisHelper::removeErizo(erizo.id);
+        RedisHelper::removeErizo(erizo_agent.id, erizo.id);
         erizo_map1.erase(pid);
         erizo_map2.erase(erizo.room_id);
     }
 }
 
-static pid_t newErizoProcess(const std::string &erizo_id, const std::string &bridge_ip, uint16_t bridge_port)
+static void newErizoProcess()
 {
+    uint16_t bridge_port;
+    if (PortManager::getInstance()->allocPort(bridge_port))
+    {
+        ELOG_ERROR("allocate port failed");
+        return;
+    }
+
+    Erizo erizo;
+    erizo.id = "ez_" + Utils::getUUID();
+    erizo.bridge_ip = Config::getInstance()->bridge_ip_;
+    erizo.bridge_port = bridge_port;
+    erizo.room_id = "";
+    erizo.agent_id = erizo_agent.id;
+
     pid_t pid = fork();
     if (pid == 0)
     {
         std::ostringstream oss;
-        oss << bridge_port;
+        oss << erizo.bridge_port;
         if (execlp(Config::getInstance()->erizo_path_.c_str(),
                    "erizo_cpp",
-                   erizo_agent.id.c_str(),
-                   erizo_id.c_str(),
-                   bridge_ip.c_str(),
+                   erizo.agent_id.c_str(),
+                   erizo.id.c_str(),
+                   erizo.bridge_ip.c_str(),
                    oss.str().c_str(),
                    0) < 0)
         {
@@ -67,7 +82,19 @@ static pid_t newErizoProcess(const std::string &erizo_id, const std::string &bri
             exit(1);
         }
     }
-    return pid;
+    else if(pid < 0)
+    {
+        ELOG_ERROR("fork process failed");
+        return;
+    }
+
+
+    if (RedisHelper::addErizo(erizo_agent.id,erizo))
+    {
+        ELOG_ERROR("add Erizo to redis failed");
+    }
+    erizo_map1[pid] = erizo;
+    idle_process_num++;
 }
 
 static Json::Value getErizo(const Json::Value &root)
@@ -82,31 +109,34 @@ static Json::Value getErizo(const Json::Value &root)
     auto it = erizo_map2.find(room_id);
     if (it == erizo_map2.end())
     {
-        std::string bridge_ip = Config::getInstance()->bridge_ip_;
-        uint16_t bridge_port;
-        if (PortManager::getInstance()->allocPort(bridge_port))
+        std::vector<Erizo> erizos;
+        if (RedisHelper::getAllErizo(erizo_agent.id, erizos))
         {
-            ELOG_ERROR("allocate port failed");
+            ELOG_ERROR("redis get all erizo failed");
             return Json::nullValue;
         }
 
-        std::string erizo_id = "ez_" + Utils::getUUID();
-        pid_t pid = newErizoProcess(erizo_id, bridge_ip, bridge_port);
-        if (pid < 0)
+        auto it = std::find_if(erizos.begin(), erizos.end(), [](const Erizo &erizo) {
+            return erizo.room_id == "";
+        });
+
+        if (it != erizos.end())
         {
-            ELOG_ERROR("fork sub process failed");
+            erizo = *it;
+            erizo.room_id = room_id;
+            erizo_map2[room_id] = erizo;
+            if (RedisHelper::addErizo(erizo_agent.id, erizo))
+            {
+                ELOG_ERROR("add erizo to redis failed");
+                return Json::nullValue;
+            }
+            idle_process_num--;
+        }
+        else
+        {
+            ELOG_ERROR("alloc idle erizo process failed");
             return Json::nullValue;
         }
-
-        ELOG_INFO("new sub process %d", pid);
-        erizo.id = erizo_id;
-        erizo.room_id = room_id;
-        erizo.bridge_ip = bridge_ip;
-        erizo.bridge_port = bridge_port;
-        erizo.agent_id = erizo_agent.id;
-        RedisHelper::addErizo(erizo);
-        erizo_map1[pid] = erizo;
-        erizo_map2[room_id] = erizo;
     }
     else
     {
@@ -138,6 +168,11 @@ int main()
     {
         ELOG_ERROR("redis initialize failed");
         return 1;
+    }
+
+    for(int i =0 ;i<2;i++)
+    {
+        newErizoProcess();
     }
 
     if (AMQPHelper::getInstance()->init(Config::getInstance()->uniquecast_exchange_, erizo_agent.id, [](const std::string &msg) {
@@ -208,7 +243,7 @@ int main()
     }
     RedisHelper::removeErizoAgent(Config::getInstance()->area_, erizo_agent.id);
     for (auto it = erizo_map1.begin(); it != erizo_map1.end(); it++)
-        RedisHelper::removeErizo(it->second.id);
+        RedisHelper::removeErizo(erizo_agent.id,it->second.id);
 
     AMQPHelper::getInstance()->close();
     ACLRedis::getInstance()->close();
