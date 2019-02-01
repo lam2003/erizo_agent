@@ -43,11 +43,6 @@ Config *Config::getInstance()
 
 Config::~Config()
 {
-    if (instance_ != nullptr)
-    {
-        delete instance_;
-        instance_ = nullptr;
-    }
 }
 
 int Config::init(const std::string &config_file)

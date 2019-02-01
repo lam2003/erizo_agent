@@ -36,7 +36,7 @@ int main()
 
     if (ACLRedis::getInstance()->init())
     {
-        ELOG_ERROR("acl redis initialize failed");
+        ELOG_ERROR("acl-redis initialize failed");
         return 1;
     }
 

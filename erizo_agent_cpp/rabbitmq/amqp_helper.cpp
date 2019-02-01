@@ -19,7 +19,7 @@ int AMQPHelper::checkError(amqp_rpc_reply_t x)
         return 0;
 
     case AMQP_RESPONSE_NONE:
-        ELOG_ERROR("missing RPC reply type!");
+        ELOG_ERROR("missing rpc reply type!");
         break;
 
     case AMQP_RESPONSE_LIBRARY_EXCEPTION:
