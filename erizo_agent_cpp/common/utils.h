@@ -65,6 +65,12 @@ class Utils
         }
         return 0;
     }
+
+    static std::string dumpJson(const Json::Value &root)
+    {
+        Json::FastWriter writer;
+        return writer.write(root);
+    }
 };
 
 #endif

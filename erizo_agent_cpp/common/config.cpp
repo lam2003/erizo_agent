@@ -8,27 +8,30 @@ Config *Config::instance_ = nullptr;
 
 Config::Config()
 {
-    rabbitmq_username_ = "linmin";
-    rabbitmq_passwd_ = "linmin";
-    rabbitmq_hostname_ = "127.0.0.1";
-    rabbitmq_port_ = 5672;
-    uniquecast_exchange_ = "erizo_uniquecast_exchange";
-    boardcast_exchange_ = "erizo_boardcast_exchange";
+    rabbitmq_username = "linmin";
+    rabbitmq_passwd = "linmin";
+    rabbitmq_hostname = "127.0.0.1";
+    rabbitmq_port = 5672;
+    uniquecast_exchange = "erizo_uniquecast_exchange";
+    boardcast_exchange = "erizo_boardcast_exchange";
 
-    redis_ip_ = "127.0.0.1";
-    redis_port_ = 6379;
-    redis_password_ = "cathy978";
-    redis_conn_timeout_ = 10;
-    redis_rw_timeout_ = 10;
-    redis_max_conns_ = 100;
+    redis_ip = "127.0.0.1";
+    redis_port = 6379;
+    redis_passwd = "cathy978";
+    redis_conn_timeout = 10;
+    redis_rw_timeout = 10;
+    redis_max_conns = 100;
 
-    erizo_path_ = "/test/cpp/erizo_cpp/bin/erizo_cpp";
-    area_ = "default_area";
-    update_interval_ = 5000;
+    erizo_path = "/test/cpp/erizo_cpp/bin/erizo_cpp";
+    server_field = "default_area";
+    update_interval = 5000;
+    default_process_num = 2;
+    min_idle_process_num = 2;
+    max_process_num = 5;
 
-    min_bridge_port_ = 20000;
-    max_bridge_port_ = 30000;
-    bridge_ip_ = "172.19.5.28";
+    min_bridge_port = 20000;
+    max_bridge_port = 30000;
+    bridge_ip = "172.19.5.28";
 }
 
 Config *Config::getInstance()
@@ -98,7 +101,7 @@ int Config::init(const std::string &config_file)
         !redis.isMember("rw_timeout") ||
         redis["rw_timeout"].type() != Json::intValue ||
         !redis.isMember("max_conns") ||
-        redis["max_conns"].type() != Json::intValue )
+        redis["max_conns"].type() != Json::intValue)
     {
         ELOG_ERROR("redis config check error");
         return 1;
@@ -112,7 +115,13 @@ int Config::init(const std::string &config_file)
         !agent.isMember("area") ||
         agent["area"].type() != Json::stringValue ||
         !agent.isMember("update_interval") ||
-        agent["update_interval"].type() != Json::intValue)
+        agent["update_interval"].type() != Json::intValue ||
+        !agent.isMember("default_process_num") ||
+        agent["default_process_num"].type() != Json::intValue ||
+        !agent.isMember("min_idle_process_num") ||
+        agent["min_idle_process_num"].type() != Json::intValue ||
+        !agent.isMember("max_process_num") ||
+        agent["max_process_num"].type() != Json::intValue)
     {
         ELOG_ERROR("agent config check error");
         return 1;
@@ -132,27 +141,30 @@ int Config::init(const std::string &config_file)
         return 1;
     }
 
-    rabbitmq_hostname_ = rabbitmq["host"].asString();
-    rabbitmq_port_ = rabbitmq["port"].asInt();
-    rabbitmq_username_ = rabbitmq["username"].asString();
-    rabbitmq_passwd_ = rabbitmq["password"].asString();
-    uniquecast_exchange_ = rabbitmq["uniquecast_exchange"].asString();
-    boardcast_exchange_ = rabbitmq["boardcast_exchange"].asString();
+    rabbitmq_hostname = rabbitmq["host"].asString();
+    rabbitmq_port = rabbitmq["port"].asInt();
+    rabbitmq_username = rabbitmq["username"].asString();
+    rabbitmq_passwd = rabbitmq["password"].asString();
+    uniquecast_exchange = rabbitmq["uniquecast_exchange"].asString();
+    boardcast_exchange = rabbitmq["boardcast_exchange"].asString();
 
-    redis_ip_ = redis["ip"].asString();
-    redis_port_ = redis["port"].asInt();
-    redis_password_ = redis["password"].asString();
-    redis_conn_timeout_ = redis["conn_timeout"].asInt();
-    redis_rw_timeout_ = redis["rw_timeout"].asInt();
-    redis_max_conns_ = redis["max_conns"].asInt();
+    redis_ip = redis["ip"].asString();
+    redis_port = redis["port"].asInt();
+    redis_passwd = redis["password"].asString();
+    redis_conn_timeout = redis["conn_timeout"].asInt();
+    redis_rw_timeout = redis["rw_timeout"].asInt();
+    redis_max_conns = redis["max_conns"].asInt();
 
-    erizo_path_ = agent["erizo_path"].asString();
-    area_ = agent["area"].asString();
-    update_interval_ = agent["update_interval"].asInt();
+    erizo_path = agent["erizo_path"].asString();
+    server_field = agent["area"].asString();
+    update_interval = agent["update_interval"].asInt();
+    default_process_num = agent["default_process_num"].asInt();
+    min_idle_process_num = agent["min_idle_process_num"].asInt();
+    max_process_num = agent["max_process_num"].asInt();
 
-    min_bridge_port_ = bridge["min_port"].asInt();
-    max_bridge_port_ = bridge["max_port"].asInt();
-    bridge_ip_ = bridge["ip"].asString();
+    min_bridge_port = bridge["min_port"].asInt();
+    max_bridge_port = bridge["max_port"].asInt();
+    bridge_ip = bridge["ip"].asString();
 
     return 0;
 }

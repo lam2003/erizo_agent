@@ -2,10 +2,13 @@
 #define ACL_REDIS_H
 
 #include <vector>
-#include <thread>
-#include <atomic>
+#include <string>
+#include <memory>
 
-#include <acl_cpp/lib_acl.hpp>
+namespace acl
+{
+class redis_client_cluster;
+}
 
 class ACLRedis
 {

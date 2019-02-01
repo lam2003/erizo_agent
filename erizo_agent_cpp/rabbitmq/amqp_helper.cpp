@@ -1,24 +1,13 @@
 #include "amqp_helper.h"
 
-#include <unistd.h>
-
 #include "common/config.h"
+
+#include <unistd.h>
 
 DEFINE_LOGGER(AMQPHelper, "AMQPHelper");
 
-AMQPHelper *AMQPHelper::instance_ = nullptr;
-AMQPHelper *AMQPHelper::getInstance()
-{
-    if (!instance_)
-        instance_ = new AMQPHelper;
-    return instance_;
-}
-
 AMQPHelper::AMQPHelper() : conn_(nullptr),
-                           init_(false)
-
-{
-}
+                           init_(false) {}
 
 AMQPHelper::~AMQPHelper() {}
 
@@ -67,7 +56,7 @@ int AMQPHelper::checkError(amqp_rpc_reply_t x)
     return 1;
 }
 
-int AMQPHelper::init(const std::string &exchange, const std::string &binding_key, const std::function<void(const std::string &msg)> &func)
+int AMQPHelper::init(const std::string &binding_key, const std::function<void(const std::string &msg)> &func)
 {
     if (init_)
         return 0;
@@ -81,15 +70,15 @@ int AMQPHelper::init(const std::string &exchange, const std::string &binding_key
         return 1;
     }
 
-    if (amqp_socket_open(socket, Config::getInstance()->rabbitmq_hostname_.c_str(), Config::getInstance()->rabbitmq_port_) != AMQP_STATUS_OK)
+    if (amqp_socket_open(socket, Config::getInstance()->rabbitmq_hostname.c_str(), Config::getInstance()->rabbitmq_port) != AMQP_STATUS_OK)
     {
         ELOG_ERROR("open tcp socket failed");
         return 1;
     }
 
     res = amqp_login(conn_, "/", 0, 131072, 0,
-                     AMQP_SASL_METHOD_PLAIN, Config::getInstance()->rabbitmq_username_.c_str(),
-                     Config::getInstance()->rabbitmq_passwd_.c_str());
+                     AMQP_SASL_METHOD_PLAIN, Config::getInstance()->rabbitmq_username.c_str(),
+                     Config::getInstance()->rabbitmq_passwd.c_str());
     if (checkError(res))
     {
         ELOG_ERROR("login failed");
@@ -120,7 +109,7 @@ int AMQPHelper::init(const std::string &exchange, const std::string &binding_key
         return 1;
     }
 
-    amqp_queue_bind(conn_, 1, queuename, amqp_cstring_bytes(exchange.c_str()),
+    amqp_queue_bind(conn_, 1, queuename, amqp_cstring_bytes(Config::getInstance()->uniquecast_exchange.c_str()),
                     amqp_cstring_bytes(binding_key.c_str()), amqp_empty_table);
     res = amqp_get_rpc_reply(conn_);
     if (checkError(res))
@@ -152,8 +141,8 @@ void AMQPHelper::close()
     amqp_channel_close(conn_, 1, AMQP_REPLY_SUCCESS);
     amqp_connection_close(conn_, AMQP_REPLY_SUCCESS);
     amqp_destroy_connection(conn_);
-
     conn_ = nullptr;
+    
     init_ = false;
 }
 
@@ -184,7 +173,9 @@ int AMQPHelper::dispatch()
     return 0;
 }
 
-int AMQPHelper::sendMessage(const std::string &exchange, const std::string &queuename, const std::string &binding_key, const std::string &send_msg)
+int AMQPHelper::sendMessage(const std::string &queuename,
+                            const std::string &binding_key,
+                            const std::string &send_msg)
 {
     if (!init_)
         return 0;
@@ -200,7 +191,7 @@ int AMQPHelper::sendMessage(const std::string &exchange, const std::string &queu
         return 1;
     }
 
-    amqp_basic_publish(conn_, 1, amqp_cstring_bytes(exchange.c_str()),
+    amqp_basic_publish(conn_, 1, amqp_cstring_bytes(Config::getInstance()->uniquecast_exchange.c_str()),
                        amqp_cstring_bytes(binding_key.c_str()), 0, 0,
                        &props, amqp_cstring_bytes(send_msg.c_str()));
     amqp_bytes_free(props.reply_to);

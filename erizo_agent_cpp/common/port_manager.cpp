@@ -48,8 +48,8 @@ int PortManager::allocPort(unsigned short &port)
     int try_time = 10;
     do
     {
-        port = Config::getInstance()->min_bridge_port_;
-        port += rand() % (Config::getInstance()->max_bridge_port_ - Config::getInstance()->min_bridge_port_);
+        port = Config::getInstance()->min_bridge_port;
+        port += rand() % (Config::getInstance()->max_bridge_port - Config::getInstance()->min_bridge_port);
         ret = checkPort(port);
         try_time--;
     } while (ret && try_time);

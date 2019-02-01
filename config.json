@@ -18,7 +18,10 @@
     "agent": {
         "erizo_path": "/test/cpp/erizo_cpp/bin/erizo_cpp",
         "area": "default_area",
-        "update_interval": 5000
+        "update_interval": 5000,
+        "default_process_num": 2,
+        "min_idle_process_num":2,
+        "max_process_num":5
     },
     "bridge": {
         "ip": "172.19.5.28",

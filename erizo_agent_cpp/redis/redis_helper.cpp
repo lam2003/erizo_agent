@@ -1,9 +1,11 @@
 #include "redis_helper.h"
 
+#include "acl_redis.h"
+
 int RedisHelper::addErizoAgent(const std::string &area, const ErizoAgent &agent)
 {
     std::string key = "erizo_agent_" + area;
-    if (ACLRedis::getInstance()->hset(key, agent.id, agent.toJSON()) == -1)
+    if (ACLRedis::getInstance()->hset(key, agent.getId(), agent.toJSON()) == -1)
         return 1;
     return 0;
 }

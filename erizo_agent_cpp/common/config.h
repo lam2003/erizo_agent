@@ -18,30 +18,33 @@ public:
 
 public:
   // RabbitMQ config
-  std::string rabbitmq_username_;
-  std::string rabbitmq_passwd_;
-  std::string rabbitmq_hostname_;
-  unsigned short rabbitmq_port_;
-  std::string uniquecast_exchange_;
-  std::string boardcast_exchange_;
+  std::string rabbitmq_username;
+  std::string rabbitmq_passwd;
+  std::string rabbitmq_hostname;
+  unsigned short rabbitmq_port;
+  std::string uniquecast_exchange;
+  std::string boardcast_exchange;
 
   //redis
-  std::string redis_ip_;
-  unsigned short redis_port_;
-  std::string redis_password_;
-  int redis_conn_timeout_;
-  int redis_rw_timeout_;
-  int redis_max_conns_;
+  std::string redis_ip;
+  unsigned short redis_port;
+  std::string redis_passwd;
+  int redis_conn_timeout;
+  int redis_rw_timeout;
+  int redis_max_conns;
 
   //Agent config
-  std::string erizo_path_;
-  std::string area_;
-  int update_interval_;
+  std::string erizo_path;
+  std::string server_field;
+  int update_interval;
+  int default_process_num;
+  int min_idle_process_num;
+  int max_process_num;
 
   //bridge
-  unsigned int min_bridge_port_;
-  unsigned int max_bridge_port_;
-  std::string bridge_ip_;
+  unsigned int min_bridge_port;
+  unsigned int max_bridge_port;
+  std::string bridge_ip;
 
 private:
   Config();
