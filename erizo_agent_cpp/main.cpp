@@ -1,16 +1,13 @@
-#include <map>
-
 #include <unistd.h>
 #include <signal.h>
-
-#include <json/json.h>
 
 #include "common/utils.h"
 #include "common/config.h"
 #include "core/erizo_agent.h"
 #include "redis/acl_redis.h"
 
-DEFINE_FUNC_LOGGER("Main")
+LOGGER_DECLARE()
+
 static bool run = true;
 
 static void sigint_handler(int signo)
@@ -22,6 +19,9 @@ int main()
 {
     srand(time(0));
     signal(SIGINT, sigint_handler);
+
+    LOGGER_INIT();
+
     if (Utils::initPath())
     {
         ELOG_ERROR("working path initialize failed");

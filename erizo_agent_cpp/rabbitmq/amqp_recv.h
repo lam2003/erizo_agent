@@ -1,21 +1,20 @@
-#ifndef AMQP_HELPER_H
-#define AMQP_HELPER_H
+#ifndef AMQP_RECV_H
+#define AMQP_RECV_H
 
 #include <memory>
 #include <functional>
 
-#include <amqp.h>
-#include <amqp_tcp_socket.h>
-
 #include "common/logger.h"
 
-class AMQPHelper
+class AMQPCli;
+
+class AMQPRecv
 {
   DECLARE_LOGGER();
 
 public:
-  AMQPHelper();
-  ~AMQPHelper();
+  AMQPRecv();
+  ~AMQPRecv();
 
   int init(const std::string &binding_key,
            const std::function<void(const std::string &)> &func);
@@ -26,11 +25,8 @@ public:
                   const std::string &send_msg);
 
 private:
-  int checkError(amqp_rpc_reply_t x);
-
-private:
   std::function<void(const std::string &)> func_;
-  amqp_connection_state_t conn_;
+  std::unique_ptr<AMQPCli> amqp_cli_;
   bool init_;
 };
 

@@ -15,7 +15,7 @@
 #include "model/erizo.h"
 #include "common/logger.h"
 
-class AMQPHelper;
+class AMQPRecv;
 class Erizo;
 
 class ErizoAgent
@@ -49,6 +49,7 @@ private:
 
   void checkIfSubProcessQuit();
   int newErizoProcess();
+  void notifyErizoProcessQuit(const Erizo &erizo);
 
   Json::Value getErizo(const Json::Value &root);
 
@@ -59,7 +60,7 @@ private:
   std::string id_;
   uint64_t last_update_;
   int idle_process_num_;
-  std::shared_ptr<AMQPHelper> amqp_uniquecast_;
+  std::shared_ptr<AMQPRecv> amqp_uniquecast_;
   bool init_;
 
   static ErizoAgent *instance_;

@@ -9,6 +9,21 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+#include <json/json.h>
+
+#include "logger.h"
+
+#define LOGGER_DECLARE() \
+    static log4cxx::LoggerPtr logger;
+#define LOGGER_INIT()                             \
+    do                                            \
+    {                                             \
+        char buf[1024];                           \
+        pid_t pid = getpid();                     \
+        sprintf(buf, "[erizo-agent-%d]", pid);    \
+        logger = log4cxx::Logger::getLogger(buf); \
+    } while (0)
+
 class Utils
 {
   public:

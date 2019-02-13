@@ -54,7 +54,7 @@ int Config::init(const std::string &config_file)
         return 1;
     }
 
-    Json::Reader reader;
+    Json::Reader reader(Json::Features::strictMode());
     Json::Value root;
     if (!reader.parse(ifs, root))
     {

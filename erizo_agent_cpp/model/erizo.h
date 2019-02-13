@@ -12,6 +12,7 @@ struct Erizo
     std::string bridge_ip;
     uint16_t bridge_port;
     std::string agent_id;
+    int pid;
 
     std::string toJSON() const
     {
@@ -21,6 +22,7 @@ struct Erizo
         root["bridge_ip"] = bridge_ip;
         root["bridge_port"] = bridge_port;
         root["agent_id"] = agent_id;
+        root["pid"] = pid;
 
         Json::FastWriter writer;
         return writer.write(root);
@@ -29,7 +31,7 @@ struct Erizo
     static int fromJSON(const std::string &json, Erizo &erizo)
     {
         Json::Value root;
-        Json::Reader reader;
+        Json::Reader reader(Json::Features::strictMode());
         if (!reader.parse(json, root))
             return 1;
 
@@ -42,7 +44,9 @@ struct Erizo
             !root.isMember("bridge_port") ||
             root["bridge_port"].type() != Json::intValue ||
             !root.isMember("agent_id") ||
-            root["agent_id"].type() != Json::stringValue)
+            root["agent_id"].type() != Json::stringValue ||
+            !root.isMember("pid") ||
+            root["pid"].type() != Json::intValue)
             return 1;
 
         erizo.id = root["id"].asString();
@@ -50,6 +54,7 @@ struct Erizo
         erizo.bridge_ip = root["bridge_ip"].asString();
         erizo.bridge_port = root["bridge_port"].asInt();
         erizo.agent_id = root["agent_id"].asString();
+        erizo.pid = root["pid"].asInt();
         return 0;
     }
 };

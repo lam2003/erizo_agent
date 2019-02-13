@@ -1,6 +1,6 @@
 #include "erizo_agent.h"
 
-#include "rabbitmq/amqp_helper.h"
+#include "rabbitmq/amqp_recv.h"
 #include "redis/redis_helper.h"
 #include "common/port_manager.h"
 #include "common/utils.h"
@@ -39,10 +39,10 @@ int ErizoAgent::init()
     while (default_process_num--)
         newErizoProcess();
 
-    amqp_uniquecast_ = std::make_shared<AMQPHelper>();
+    amqp_uniquecast_ = std::make_shared<AMQPRecv>();
     if (amqp_uniquecast_->init(id_, [this](const std::string &msg) {
             Json::Value root;
-            Json::Reader reader;
+            Json::Reader reader(Json::Features::strictMode());
             if (!reader.parse(msg, root))
             {
                 ELOG_ERROR("json parse root failed,dump %s", msg);
@@ -118,7 +118,11 @@ void ErizoAgent::close()
 
     RedisHelper::removeErizoAgent(Config::getInstance()->server_field, id_);
     for (auto it = pid_erizo_mapping_.begin(); it != pid_erizo_mapping_.end(); it++)
+    {
         RedisHelper::removeErizo(id_, it->second.id);
+        kill(it->second.pid, SIGINT);
+    }
+
     pid_erizo_mapping_.clear();
     roomid_erizo_mapping_.clear();
 
@@ -172,6 +176,9 @@ void ErizoAgent::checkIfSubProcessQuit()
         RedisHelper::removeErizo(id_, erizo.id);
         pid_erizo_mapping_.erase(pid);
         roomid_erizo_mapping_.erase(erizo.room_id);
+        notifyErizoProcessQuit(erizo);
+        if (erizo.room_id == "")
+            idle_process_num_--;
         ELOG_INFO("erizo process %d quit", pid);
     }
 }
@@ -215,6 +222,7 @@ int ErizoAgent::newErizoProcess()
         return 1;
     }
 
+    erizo.pid = pid;
     if (RedisHelper::addErizo(id_, erizo))
     {
         ELOG_ERROR("add erizo to redis failed");
@@ -254,15 +262,16 @@ Json::Value ErizoAgent::getErizo(const Json::Value &root)
             return Json::nullValue;
         }
 
-        auto it = std::find_if(erizos.begin(), erizos.end(), [](const Erizo &erizo) {
+        auto itc = std::find_if(erizos.begin(), erizos.end(), [](const Erizo &erizo) {
             return erizo.room_id == "";
         });
 
-        if (it != erizos.end())
+        if (itc != erizos.end())
         {
-            erizo = *it;
+            erizo = *itc;
             erizo.room_id = room_id;
             roomid_erizo_mapping_[room_id] = erizo;
+            pid_erizo_mapping_[erizo.pid] = erizo;
             idle_process_num_--;
             if (RedisHelper::addErizo(id_, erizo))
             {
@@ -287,3 +296,30 @@ Json::Value ErizoAgent::getErizo(const Json::Value &root)
     data["bridgePort"] = erizo.bridge_port;
     return data;
 };
+
+void ErizoAgent::notifyErizoProcessQuit(const Erizo &erizo)
+{
+    std::vector<Client> clients;
+    if (RedisHelper::getAllClient(erizo.room_id, clients))
+    {
+        ELOG_ERROR("get all client from redis failed");
+        return;
+    }
+
+    for (const Client &client : clients)
+    {
+        if (client.erizo_id == erizo.id)
+        {
+            Json::Value root;
+            Json::Value data;
+            data["type"] = "notifyErizoProcessQuit";
+            data["clientId"] = client.id;
+            root["data"] = data;
+            Json::FastWriter writer;
+            std::string msg = writer.write(root);
+            amqp_uniquecast_->sendMessage(client.reply_to,
+                                          client.reply_to,
+                                          msg);
+        }
+    }
+}

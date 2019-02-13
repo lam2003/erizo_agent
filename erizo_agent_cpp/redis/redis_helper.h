@@ -6,10 +6,12 @@
 
 #include "core/erizo_agent.h"
 #include "model/erizo.h"
+#include "model/client.h"
 
 class RedisHelper
 {
 public:
+  static int getAllClient(const std::string &room_id, std::vector<Client> &clients);
   static int addErizoAgent(const std::string &area, const ErizoAgent &agent);
   static int removeErizoAgent(const std::string &area, const std::string &agent_id);
 

@@ -46,3 +46,19 @@ int RedisHelper::getAllErizo(const std::string &agent_id, std::vector<Erizo> &er
     }
     return 0;
 }
+
+int RedisHelper::getAllClient(const std::string &room_id, std::vector<Client> &clients)
+{
+    std::string key = "clients_" + room_id;
+    std::vector<std::string> fields, values;
+    if (ACLRedis::getInstance()->hvals(key, fields, values) == -1)
+        return 1;
+    clients.clear();
+    for (std::string &v : values)
+    {
+        Client c;
+        if (!Client::fromJSON(v, c))
+            clients.push_back(c);
+    }
+    return 0;
+}
