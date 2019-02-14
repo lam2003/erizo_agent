@@ -17,10 +17,10 @@
     },
     "agent": {
         "erizo_path": "/test/cpp/erizo_cpp/bin/erizo_cpp",
-        "area": "default_area",
+        "area": "default",
         "update_interval": 5000,
-        "default_process_num": 2,
-        "min_idle_process_num":2,
+        "default_process_num": 1,
+        "min_idle_process_num":1,
         "max_process_num":5
     },
     "bridge": {

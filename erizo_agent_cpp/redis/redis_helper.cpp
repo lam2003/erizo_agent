@@ -4,7 +4,7 @@
 
 int RedisHelper::addErizoAgent(const std::string &area, const ErizoAgent &agent)
 {
-    std::string key = "erizo_agent_" + area;
+    std::string key = "erizo_agent_" + area + "_heartbeat";
     if (ACLRedis::getInstance()->hset(key, agent.getId(), agent.toJSON()) == -1)
         return 1;
     return 0;
@@ -12,7 +12,7 @@ int RedisHelper::addErizoAgent(const std::string &area, const ErizoAgent &agent)
 
 int RedisHelper::removeErizoAgent(const std::string &area, const std::string &agent_id)
 {
-    std::string key = "erizo_agent_" + area;
+    std::string key = "erizo_agent_" + area + "_heartbeat";
     if (ACLRedis::getInstance()->hdel(key, agent_id) == -1)
         return 1;
     return 0;
@@ -49,7 +49,7 @@ int RedisHelper::getAllErizo(const std::string &agent_id, std::vector<Erizo> &er
 
 int RedisHelper::getAllClient(const std::string &room_id, std::vector<Client> &clients)
 {
-    std::string key = "clients_" + room_id;
+    std::string key = "client_" + room_id;
     std::vector<std::string> fields, values;
     if (ACLRedis::getInstance()->hvals(key, fields, values) == -1)
         return 1;
