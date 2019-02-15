@@ -112,16 +112,17 @@ void ErizoAgent::close()
     if (!init_)
         return;
 
-    amqp_uniquecast_->close();
-    amqp_uniquecast_.reset();
-    amqp_uniquecast_ = nullptr;
-
     RedisHelper::removeErizoAgent(Config::getInstance()->server_field, id_);
     for (auto it = pid_erizo_mapping_.begin(); it != pid_erizo_mapping_.end(); it++)
     {
         RedisHelper::removeErizo(id_, it->second.id);
         kill(it->second.pid, SIGINT);
+        notifyErizoProcessQuit(it->second);
     }
+
+    amqp_uniquecast_->close();
+    amqp_uniquecast_.reset();
+    amqp_uniquecast_ = nullptr;
 
     pid_erizo_mapping_.clear();
     roomid_erizo_mapping_.clear();
